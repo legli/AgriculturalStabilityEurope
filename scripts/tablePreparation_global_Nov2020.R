@@ -24,6 +24,7 @@ dfCropland <- read.csv("datasets/cropland_global.csv")
 head(dfCropland)
 
 dfCropland <- dfCropland[which(dfCropland$Area%in%vecEurope),]
+dfCropland$Value <- dfCropland$Value*1000 # change to ha
 
 # only keep target years
 dfCropland <- dfCropland[which(dfCropland$Year%in%1978:2017),]

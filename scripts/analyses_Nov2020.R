@@ -143,12 +143,13 @@ anova(modDiversityCountryR,modDiversityLM)  # AIC: -247.2830 -172.6012
 
 modDiversityTimeFixed=fixef(modDiversityTime)
 r.squaredGLMM(modDiversityTime) 
-modDiversityTimeGroup <-   coef(modDiversityTime)$diversity
+modDiversityTimeGroup <-   coef(modDiversityTime)
+modDiversityTimeGroup$timePeriod <- as.numeric(row.names(modDiversityTimeGroup))
 
 modDiversityCountryFixed=fixef(modDiversityCountryR)
 r.squaredGLMM(modDiversityCountryR) 
-modDiversityCountryGroup <-   coef(modDiversityCountryR)$diversity
-
+modDiversityCountryGroup <-   coef(modDiversityCountryR)
+modDiversityCountryGroup$Country <- row.names(modDiversityCountryGroup)
 
 ###### Country level
 
@@ -213,15 +214,15 @@ mapCountry <- readOGR("spatial/countries_global.shp")
 mapRegion$Region <- mapRegion$NUTS_ID
 dfRegionAgg <- aggregate(cbind(stability,diversity,asynchrony,fertilizer,irrigation,soilQuality,soilDiversity,instabilityTemp,instabilityPrec)~Region,dfRegion,mean)
 
-a1 <- funMaps(dfRegionAgg,variable="stability",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Stability","a")
-b1 <- funMaps(dfRegionAgg,variable="diversity",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Diversity","b")
-c1 <- funMaps(dfRegionAgg,variable="asynchrony",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Asynchrony","c")
-d1 <- funMaps(dfRegionAgg,variable="fertilizer",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Nitrogen use","d")
-e1 <- funMaps(dfRegionAgg,variable="irrigation",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Irrigation","e")
-f1 <- funMaps(dfRegionAgg,variable="soilQuality",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Soil productivity","f")
-g1 <- funMaps(dfRegionAgg,variable="soilDiversity",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Soil group diversity","g")
-h1 <- funMaps(dfRegionAgg,variable="instabilityTemp",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Temprature instability","h")
-i1 <- funMaps(dfRegionAgg,variable="instabilityPrec",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Precipitation instability","i")
+a1 <- funMaps(dfRegionAgg,variable="stability",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Stability (",mu,"/",sigma,")")),"a")
+b1 <- funMaps(dfRegionAgg,variable="diversity",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Diversity  (exp(Shannon))")),"b")
+c1 <- funMaps(dfRegionAgg,variable="asynchrony",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Asynchrony")),"c")
+d1 <- funMaps(dfRegionAgg,variable="fertilizer",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Nitrogen use (t/ha)")),"d")
+e1 <- funMaps(dfRegionAgg,variable="irrigation",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Irrigation (%)")),"e")
+f1 <- funMaps(dfRegionAgg,variable="soilQuality",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Soil productivity (index)")),"f")
+g1 <- funMaps(dfRegionAgg,variable="soilDiversity",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Soil type diversity (exp(Shannon))")),"g")
+h1 <- funMaps(dfRegionAgg,variable="instabilityTemp",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Temperature instability (-(",mu,"/",sigma,"))")),"h")
+i1 <- funMaps(dfRegionAgg,variable="instabilityPrec",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Precipitation instability (-(",mu,"/",sigma,"))")),"i")
 
 jpeg("results/Fig1.jpeg", width = 16.9,height = 15, units = 'cm',res = 600)
   grid.arrange(a1,b1,c1,d1,e1,f1,g1,h1,i1,ncol=3,nrow=3)
@@ -232,15 +233,15 @@ dev.off()
 mapCountry$Country <-  countrycode(mapCountry$Area, 'country.name', 'iso2c')
 dfCountryAgg <- aggregate(cbind(stability,diversity,asynchrony,fertilizer,irrigation,soilQuality,soilDiversity,instabilityTemp,instabilityPrec)~Country,dfCountry,mean)
 
-as1 <- funMaps(dfCountryAgg,variable="stability",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Stability","a")
-bs1 <- funMaps(dfCountryAgg,variable="diversity",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Diversity","b")
-cs1 <- funMaps(dfCountryAgg,variable="asynchrony",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Asynchrony","c")
-ds1 <- funMaps(dfCountryAgg,variable="fertilizer",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Nitrogen use","d")
-es1 <- funMaps(dfCountryAgg,variable="irrigation",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Irigation","d")
-fs1 <- funMaps(dfCountryAgg,variable="soilQuality",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Soil productivity","e")
-gs1 <- funMaps(dfCountryAgg,variable="soilDiversity",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Soil group diversity","e")
-hs1 <- funMaps(dfCountryAgg,variable="instabilityTemp",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Temprature instability","f")
-is1 <- funMaps(dfCountryAgg,variable="instabilityPrec",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Precipitation instability","g")
+as1 <- funMaps(dfCountryAgg,variable="stability",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Stability (",mu,"/",sigma,")")),"a")
+bs1 <- funMaps(dfCountryAgg,variable="diversity",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Diversity (exp(Shannon))")),"b")
+cs1 <- funMaps(dfCountryAgg,variable="asynchrony",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Asynchrony")),"c")
+ds1 <- funMaps(dfCountryAgg,variable="fertilizer",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Nitrogen use (t/ha)")),"d")
+es1 <- funMaps(dfCountryAgg,variable="irrigation",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Irigation (%)")),"d")
+fs1 <- funMaps(dfCountryAgg,variable="soilQuality",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Soil productivity (index)")),"e")
+gs1 <- funMaps(dfCountryAgg,variable="soilDiversity",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Soil type diversity  (exp(Shannon))")),"e")
+hs1 <- funMaps(dfCountryAgg,variable="instabilityTemp",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Temperature instability (-(",mu,"/",sigma,"))")),"f")
+is1 <- funMaps(dfCountryAgg,variable="instabilityPrec",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),expression(paste("Precipitation instability (-(",mu,"/",sigma,"))")),"g")
 
 jpeg("results/FigS1.jpeg", width = 16.9,height = 16, units = 'cm',res = 600)
   grid.arrange(as1,bs1,cs1,ds1,es1,fs1,gs1,hs1,is1,ncol=3,nrow=3)
@@ -253,13 +254,13 @@ dev.off()
 dfDiversity <- data.frame(summary(modDiversityRegionLME)$tTable[2:9,c(1,2,5)])
 names(dfDiversity) <- c("Effect","SE","pVal")
 colnames(dfDiversity)
-dfDiversity$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Irrigation","Soil productivity","Soil group diversity","Temperature instability","Precipitation instability","Time")
+dfDiversity$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Irrigation","Soil productivity","Soil type diversity","Temperature instability","Precipitation instability","Time")
 dfDiversity$Model <- "Diversity"
 
 dfAsynchrony <- data.frame(summary(modAsynchronyRegionLME)$tTable)[2:9,c(1,2,5)]
 names(dfAsynchrony) <- c("Effect","SE","pVal")
 colnames(dfAsynchrony)
-dfAsynchrony$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Irrigation","Soil productivity","Soil group diversity","Temperature instability","Precipitation instability","Time")
+dfAsynchrony$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Irrigation","Soil productivity","Soil type diversity","Temperature instability","Precipitation instability","Time")
 dfAsynchrony$Model <-  "Asynchrony"
 
 dfCombined <- rbind(dfDiversity,dfAsynchrony)
@@ -307,13 +308,13 @@ dev.off()
 dfDiversity <- data.frame(summary(modDiversityCountry)$coefficients[2:7,c(1,2,4)])
 names(dfDiversity) <- c("Effect","SE","pVal")
 colnames(dfDiversity)
-dfDiversity$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Soil group diversity","Temperature instability","Precipitation instability","Time")
+dfDiversity$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Soil type diversity","Temperature instability","Precipitation instability","Time")
 dfDiversity$Model <- "Diversity"
 
 dfAsynchrony <- data.frame(summary(modAsynchronyCountry)$coefficients)[2:7,c(1,2,4)]
 names(dfAsynchrony) <- c("Effect","SE","pVal")
 colnames(dfAsynchrony)
-dfAsynchrony$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Soil group diversity","Temperature instability","Precipitation instability","Time")
+dfAsynchrony$nam <- c("Diversity/Asynchrony","sqrt(Nitrogen use)","Soil type diversity","Temperature instability","Precipitation instability","Time")
 dfAsynchrony$Model <-  "Asynchrony"
 
 dfCombined <- rbind(dfDiversity,dfAsynchrony)
@@ -368,7 +369,7 @@ dfPredictRegion <- data.frame(diversity=rep(0,1000),irrigation=0,fertilizer=0,so
 # a3 <- funInteraction(dfPredict=dfPredictRegion,dfCenter=dfCenterRegion,dfLog=dfTransRegion,effect="diversity",moderator="instabilityTemp",modS=modDiversityRegionLME,xlabel="Diversity",ylabel=expression(paste("Production stability (",mu,"/",sigma,")")),
                      # modLabel="Temperature instability",yVal1=0,yVal2=20)
 
-b3 <- funInteraction(dfPredict=dfPredictRegion,dfCenter=dfCenterRegion,dfLog=dfTransRegion,effect="asynchrony",moderator="irrigation",modS=modAsynchronyRegionLME,xlabel="Asynchrony",ylabel="",
+b3 <- funInteraction(dfPredict=dfPredictRegion,dfCenter=dfCenterRegion,dfLog=dfTransRegion,effect="asynchrony",moderator="irrigation",modS=modAsynchronyRegionLME,xlabel="Asynchrony",ylabel=expression(paste("Production stability (",mu,"/",sigma,")")),
                      modLabel="Irrigation",yVal1=0,yVal2=25)
 
 jpeg("results/Fig3.jpeg", width = 8, height = 8, units = 'cm',res = 600)
@@ -385,7 +386,7 @@ a4 <- ggplot(dfDiversityAsynchrony, aes(x=diversity, y=asynchrony, color = timeP
   geom_point(size=0.7) +
   scale_colour_manual(name="Time interval",values = vecColors[2:5], labels = c("1978-1987","1988-1997","1998-2007","2008-2017")) +
   scale_radius(range = c(2,12)) +
-  geom_abline(intercept = modDiversityTimeGroup,slope = modDiversityTimeGroup,color=vecColors[2:5])+
+  geom_abline(intercept = modDiversityTimeGroup[,1],slope = modDiversityTimeGroup[,2],color=vecColors[2:5])+
   # geom_abline(intercept = summary(modDiversityLMGlobal)$coefficients[1,1],slope = summary(modDiversityLMGlobal)$coefficients[2,1],color="black",linetype=3)+
   theme_classic() +  
   xlab("Diversity") +
@@ -400,10 +401,9 @@ a4 <- ggplot(dfDiversityAsynchrony, aes(x=diversity, y=asynchrony, color = timeP
   theme(legend.key.size = unit(0.2,"cm")) + 
   theme(plot.margin = unit(c(0.2,0.3,0.2,0.2), "cm")) 
 
-dfSlope <- data.frame(coef(modDiversityCountryR))
-dfSlope$Country <- rownames(dfSlope)
-names(dfSlope)[2] <- "slope"
-dfCountryAgg <- merge(dfCountryAgg,dfSlope[,c("Country","slope")])
+names(modDiversityCountryGroup)
+names(modDiversityCountryGroup)[2] <- "slope"
+dfCountryAgg <- merge(dfCountryAgg,modDiversityCountryGroup[,c("Country","slope")])
 b4 <- funMaps(dfCountryAgg,variable="slope",st_as_sf(mapCountry),"Country",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Slope","")
 
 jpeg("results/Fig4.jpeg", width = 16.9, height = 8, units = 'cm',res = 600)
