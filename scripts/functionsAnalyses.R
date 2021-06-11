@@ -1,5 +1,5 @@
 
-############### Figure 1, 3, 5
+############### function to create maps
 
 funMaps <- function(dfInput,variable,map,level,b,colVec,tit,lab)
 {
@@ -9,16 +9,7 @@ funMaps <- function(dfInput,variable,map,level,b,colVec,tit,lab)
   
   b <- seq(min(dfTarget[,variable]),max(dfTarget[,variable]),length.out = 11)
   labScale <- b
-  # if (max(dfTarget[,variable])>max(b))
-  # {
-  #   labScale[length(labScale)] <- paste0(">",max(b))
-  # }
-  # 
-  # if (min(dfTarget[,variable])<min(b))
-  # {
-  #   labScale[1] <- paste0("<",min(b))
-  # } 
-  
+
   # restrict df (for right colors)
   dfTarget[which(dfTarget[,variable]>max(b)),variable] <- max(b)  
   dfTarget[which(dfTarget[,variable]<min(b)),variable] <- min(b)
@@ -50,7 +41,7 @@ funMaps <- function(dfInput,variable,map,level,b,colVec,tit,lab)
   fig
 }
 
-############### Figure 2
+############### function to create barplot of main effects
 
 funEffect <- function(mod1,noPred,namPred,tit,color,yLength,b,rnd,yname,textPos,textNeg){
  
@@ -92,8 +83,8 @@ funEffect <- function(mod1,noPred,namPred,tit,color,yLength,b,rnd,yname,textPos,
 }
 
 
-############### Figures 3
-funInteraction <- function(dfPredict,dfCenter,dfLog,effect,moderator,modS,xlabel,ylabel,modLabel,yVal1,yVal2){
+############### function to visualize interaction effects
+funInteraction <- function(dfPredict,dfCenter,dfLog,effect,moderator,modS,xlabel,ylabel,modLabel,yVal1,yVal2,pVal){
   
   dfPredictNew <- dfPredict
   dfPredictNew[,effect] <-  seq(min(dfCenter[,effect]), max(dfCenter[,effect]), length.out = 1e3)
@@ -121,102 +112,9 @@ funInteraction <- function(dfPredict,dfCenter,dfLog,effect,moderator,modS,xlabel
     xlab(xlabel)+
     ylab(ylabel)+
     ylim(yVal1,yVal2)+
-    theme(legend.position = c(0.8,0.2),legend.title = element_text(size = 6),legend.text = element_text(size = 6),legend.key.size = unit(0.5, "lines"))+
+    theme(legend.position = c(0.8,0.17),legend.title = element_text(size = 6),legend.text = element_text(size = 6),legend.key.size = unit(0.5, "lines"))+
     guides(shape = guide_legend(override.aes = list(size = 0.5)),color = guide_legend(override.aes = list(size = 0.5)))+
     theme(plot.margin = unit(c(0.2,0.2,0.2,0.2), "cm"))+
-    scale_color_manual(name=modLabel,values = c("#E69F00","#999999","#56B4E9"))
+    scale_color_manual(name=modLabel,values = c("#E69F00","#999999","#56B4E9"))+
+    annotate("text", x=2, y=1, label= pVal,size=2)
 }
-
-
-############### Table 1/S1
-funTables <- function(modN,r,linear,namCountry)
-{
-  if (linear)
-  {
-    dfNationalTab <- data.frame(summary(modN)$coefficients)
-    dfNationalTab2 <- data.frame(est=c(summary(modN)$r.squared,AIC(modN)),tVal=c(NA,NA),pVal=c(NA,NA),Name=c("R2","AIC"))
-    rownames(dfNationalTab2) <- c("R2","AIC")
-  }
-  if(!linear)
-  {
-    dfNationalTab <- data.frame(summary(modN)$tTable[,c(1,2,4,5)])
-    dfNationalTab2 <- data.frame(est=c(r.squaredGLMM(modN),AIC(modN)),tVal=c(NA,NA,NA),pVal=c(NA,NA,NA),Name=c("R2m","R2c","AIC"))
-    rownames(dfNationalTab2) <- c("R2m","R2c","AIC")
-  }
-  # dfNationalTab <- data.frame(summary(modN)$coefficients)
-  indLow <- which(dfNationalTab$p.value<0.0001)
-  dfNationalTab <- round(dfNationalTab,r)
-  row.names(dfNationalTab) <- namCountry
-  dfNationalTab$Value <- paste0(dfNationalTab$Value," (",dfNationalTab$Std.Error,")")
-  dfNationalTab[indLow,4] <- "<0.0001"
-  dfNationalTab <- dfNationalTab[,c(1,3,4)]
-  colnames(dfNationalTab) <- c("Estimate (SE)","T","p-value") 
-  dfNationalTab$Name <- namCountry
-  dfNationalTab2$est <- round(dfNationalTab2$est,r)
-  colnames(dfNationalTab2) <- colnames(dfNationalTab)
-  dfFinal <- rbind(dfNationalTab,dfNationalTab2)
-  dfFinal[,c("Name","Estimate (SE)","T","p-value")]
-}
-
-
-
-############### Figures S4-S6
-# funPlot <- function(predictor,dfPredict,dfCenter,dfLog,dfOriginal,trans,xlabel,ylabel,modD,modA, posX,posY){
-#   
-#   dfPredictNew <- dfPredict
-#   dfPredictNew[,predictor] <-  seq(min(dfCenter[,predictor]), max(dfCenter[,predictor]), length.out = 1e3)
-# 
-#   if (!is.null(modD)){
-#     predDiversity <- exp(data.frame(predict(modD,newdata = dfPredictNew,level=0))) 
-#                                             
-#     
-#     if (trans==""){
-#       predDiversity$variable <- dfPredictNew[,predictor]*sd(dfLog[,predictor])+mean(dfLog[,predictor])
-#       
-#     }
-#     if (trans=="sqrt"){
-#       predDiversity$variable <- (dfPredictNew[,predictor]*sd(dfLog[,predictor])+mean(dfLog[,predictor]))^2
-#     }    
-#     predDiversity$Model <- factor("Diversity",levels=lev)
-#     names(predDiversity)[1] <- "fit"
-#     pred <- predDiversity
-#   }
-#   
-#   if (!is.null(modA)){
-#     predAsynchrony <- exp(data.frame(predict(modA,newdata = dfPredictNew,level=0))) 
-# 
-#     
-#     if (trans==""){
-#       predAsynchrony$variable <- dfPredictNew[,predictor]*sd(dfLog[,predictor])+mean(dfLog[,predictor])
-#       
-#     }
-#     if (trans=="sqrt"){
-#       predAsynchrony$variable <- (dfPredictNew[,predictor]*sd(dfLog[,predictor])+mean(dfLog[,predictor]))^2
-#     }  
-#     predAsynchrony$Model <- factor("Asynchrony",levels=lev)
-#     names(predAsynchrony)[1] <- "fit"
-#     if (is.null(modD)){pred <- predAsynchrony}
-#     if (!is.null(modD)){pred <- rbind(pred,predAsynchrony)}
-#   }
-#   
-#   dfOriginal$variable <- dfOriginal[,predictor]
-#   dfOriginal$Model <- ""
-#   ggplot(data = dfOriginal, aes(x = variable, y = stability, color=Model)) +
-#     # geom_point() +
-#     geom_line(data = pred, aes(y = fit,color=Model),size=0.5)+
-#     # geom_ribbon(data = pred, aes(y = fit, ymin = lwr, ymax = upr, fill = Model), alpha = 0.5,colour=NA) +
-#     theme_classic() +
-#     theme(axis.title=element_text(size=8),axis.text=element_text(size=8)) +
-#     xlab(xlabel)+
-#     ylab(ylabel)+
-#     ylim(0,20)+
-#     scale_colour_manual(name = "Model",values = myColors)+
-#     scale_fill_manual(name = "Model",values = myColors)+
-#     theme(legend.position = c(posX, posY))+
-#     theme(legend.title = element_text(size = 8),
-#           legend.text = element_text(size = 8))+    
-#     theme(plot.margin = unit(c(0.2,0.2,0.2,0.2), "cm"))
-# }
-# 
-
-

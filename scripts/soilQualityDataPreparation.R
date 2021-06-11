@@ -5,10 +5,17 @@ library(countrycode)
 library(foreign)
 library(vegan)
 
-## Shapes
+####### read data
 
-# regional
+## soil quality data
+rasterQuality <- raster("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/soilQualityCroplands/RES_016_02_Toth2013_sqi_fig5_crop11.tif")
+
+## soil groups
+dfSoilGroup <- read.dbf("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/soilGroups/DSMW_DOMSOI_regions_europe_agriculturalAreasCLC_proj.dbf")
+
+# regional shape
 mapRegion <- readOGR("spatial/regions_europe.shp")
+mapRegion <- spTransform(mapRegion,crs(rasterQuality))
 dfRegion <- mapRegion@data
 dfRegion$ISO2 <- substr(dfRegion$NUTS_ID,1,2)
 dfRegion$Country <- countrycode(dfRegion$ISO2, 'iso2c', 'iso3c')
@@ -16,17 +23,19 @@ dfRegion[which(dfRegion$ISO2=="EL"),"ISO2"] <- "GR"
 dfRegion[which(dfRegion$ISO2=="UK"),"ISO2"] <- "GB"
 dfRegion$Country <- countrycode(dfRegion$ISO2, 'iso2c', 'iso3c')
 
-# national
+# national shape
 mapCountry <- readOGR("spatial/countries_global.shp")
+mapCountry <- spTransform(mapCountry,crs(rasterQuality))
 mapCountry$Country <-  countrycode(mapCountry$Area, 'country.name', 'iso3c')
 mapCountry <- mapCountry[mapCountry@data$Country %in%unique(dfRegion$Country),]
-plot(mapCountry)
 
-## read soil quality data and mask with cropland raster
-rasterQuality <- raster("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/soilQualityCroplands/RES_016_02_Toth2013_sqi_fig5_crop11.tif")
+
+####### read data extract soil quality data 
 plot(rasterQuality)
+lines(mapRegion)
+lines(mapCountry,col="red")
 
-## extract soil quality data in each region
+## in each region
 dfExtractRegion <- raster::extract(rasterQuality,mapRegion,fun=mean,na.rm=TRUE,weights=TRUE,normalizeWeights=TRUE,sp=TRUE)@data
 head(dfExtractRegion)
 
@@ -35,7 +44,7 @@ names(dfExtractRegion) <- c("Region","soilQuality")
 write.csv(dfExtractRegion,"datasetsDerived/soilQuality_regional.csv",row.names = F)
 rm(dfExtractRegion)
 
-## extract suitability data in each country
+## in each country
 dfExtractCountry <- raster::extract(rasterQuality,mapCountry,fun=mean,na.rm=TRUE,weights=TRUE,normalizeWeights=TRUE,sp=TRUE)@data
 head(dfExtractCountry)
 
@@ -47,9 +56,6 @@ write.csv(dfExtractCountry,"datasetsDerived/soilQuality_national.csv",row.names 
 
 
 ####### diversity of soil groups
-
-dfSoilGroup <- read.dbf("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/soilGroups/DSMW_DOMSOI_regions_europe_agriculturalAreasCLC_proj.dbf")
-head(dfSoilGroup)
 
 ## regional
 nrow(unique(dfSoilGroup[,c("NUTS_ID","DOMSOI")]))==nrow(dfSoilGroup)

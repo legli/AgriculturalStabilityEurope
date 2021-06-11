@@ -41,7 +41,7 @@ dfAgriculture <- dfAgriculture[which(!is.na(dfAgriculture$values)),]
 # keep relevant regions (highest resolution and with most entries)
 dfAgriculture$geo <- as.character(dfAgriculture$geo)
 
-## only keep subnational resolution (Finnlad is also excluded as it only has few entries at subnational level)
+## keep relevant regions
 dfAgricultureRed <- dfAgriculture[which(dfAgriculture$geo%in% 
                                           c("AT11","AT12","AT13","AT21","AT22","AT31","AT32","AT33","AT34",
                                             "BE10","BE21","BE22","BE23","BE24","BE25","BE31","BE32","BE33","BE34","BE35",
