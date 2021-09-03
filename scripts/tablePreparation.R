@@ -1,7 +1,6 @@
 library(vegan)
 library(tidyr)
 library(countrycode)
-library(codyn)
 library(openxlsx)
 
 ######## DATA PREPARATION
@@ -71,17 +70,17 @@ dfProduction$Production <- dfProduction$Production*1000
 dfProduction$AreaHarvested <- dfProduction$AreaHarvested*1000
 
 # add calories and make crops consistent with target crop file
-dfProduction <- merge(dfProduction,dfCalories[,c("Item","Calories","NameFAO")],by="Item")
+names(dfCalories)[5:6] <- c("Protein","Fat")
+dfProduction <- merge(dfProduction,dfCalories[,c("Item","Calories","Protein","Fat","NameFAO")],by="Item")
 names(dfProduction)
 
 # change production to calories 
-dfProduction$Production <- dfProduction$Production*dfProduction$Calories
-# calculate crop-specific yields 
-dfProduction$Yield <-dfProduction$Production / dfProduction$AreaHarvested
-hist(dfProduction$Yield)
+dfProduction$ProductionCalories <- dfProduction$Production*dfProduction$Calories
+dfProduction$ProductionProtein <- dfProduction$Production*dfProduction$Protein
+dfProduction$ProductionFat <- dfProduction$Production*dfProduction$Fat
 
 # keep necessary columns only 
-dfProduction <- dfProduction[,c("Region","Item","NameFAO","Year","AreaHarvested","Production","Yield")]
+dfProduction <- dfProduction[,c("Region","Item","NameFAO","Year","AreaHarvested","Production","ProductionCalories","ProductionProtein","ProductionFat")]
 
 # only keep crops with 10 entries per time period
 dfProduction$timePeriod=0
@@ -95,9 +94,9 @@ dfProduction$sum <- 1
 dfCount <- aggregate(sum~Region+timePeriod+Item,dfProduction,sum)
 head(dfCount)
 
-dfProduction <- merge(dfProduction[,c("Region","Item","NameFAO","Year","AreaHarvested","Production","Yield","timePeriod")],dfCount)
+dfProduction <- merge(dfProduction[,c("Region","Item","NameFAO","Year","AreaHarvested","Production","ProductionCalories","ProductionProtein","ProductionFat","timePeriod")],dfCount)
 nRow <- nrow(dfProduction)
-dfProduction <- dfProduction[which(dfProduction$sum>=8),c("Region","Item","NameFAO","Year","AreaHarvested","Production","Yield")]
+dfProduction <- dfProduction[which(dfProduction$sum>=8),c("Region","Item","NameFAO","Year","AreaHarvested","Production","ProductionCalories","ProductionProtein","ProductionFat")]
 length(unique(dfProduction$Item)) ## 18 crops
 nrow(dfProduction)/nRow # 0.7921437 of data left
 
@@ -106,7 +105,7 @@ mean(aggregate(AreaHarvested~Year,dfProduction,sum)[,2])/mean(aggregate(values~Y
 
 # save target crops
 dfCrops <- unique(dfCalories[which(dfCalories$NameFAO%in%unique(dfProduction$NameFAO)),])
-write.xlsx(dfCrops[order(dfCrops[,"NameFAO"],dfCrops[,"Name"]),c("NameFAO","Name")],"datasetsDerived/cropsFinal.xlsx")
+write.xlsx(dfCrops[order(dfCrops[,"NameFAO"],dfCrops[,"Name"]),c("NameFAO","Name")],"datasets/cropsFinal.xlsx")
 nrow(unique(dfProduction[,c("Region","Year","Item")])) == nrow(dfProduction) # check duplicates
 
 ## add country
@@ -114,25 +113,16 @@ dfProduction$Country <- substr(dfProduction$Region,1,2)
 dfProduction[which(dfProduction$Country=="EL"),"Country"] <- "GR"
 dfProduction[which(dfProduction$Country=="UK"),"Country"] <- "GB"
 
-## aggregate by country
-head(dfProduction)
-dfProductionCountry <- aggregate(cbind(Production,AreaHarvested)~Country+Item+Year,dfProduction,sum)
-dfProductionCountry$Yield <- dfProductionCountry$Production/dfProductionCountry$AreaHarvested
-
 #### calculate total production
 # regional level
 sum(is.na(dfProduction))
-dfProductionSum <- aggregate(cbind(Production,AreaHarvested)~Region+Year,dfProduction,sum)
+dfProductionSum <- aggregate(cbind(Production,ProductionCalories,ProductionProtein,ProductionFat,AreaHarvested)~Region+Country+Year,dfProduction,sum)
 head(dfProductionSum)
 dfProductionSum$Yield <- dfProductionSum$Production/dfProductionSum$AreaHarvested
+dfProductionSum$YieldCalories <- dfProductionSum$ProductionCalories/dfProductionSum$AreaHarvested
+dfProductionSum$YieldProtein <- dfProductionSum$ProductionProtein/dfProductionSum$AreaHarvested
+dfProductionSum$YieldFat <- dfProductionSum$ProductionFat/dfProductionSum$AreaHarvested
 nrow(unique(dfProductionSum[,c("Region","Year")])) == nrow(dfProductionSum) # check duplicates
-
-# country level
-sum(is.na(dfProductionCountry))
-dfProductionSumCountry <- aggregate(cbind(Production,AreaHarvested)~Country+Year,dfProductionCountry,sum)
-head(dfProductionSumCountry)
-dfProductionSumCountry$Yield <- dfProductionSumCountry$Production/dfProductionSumCountry$AreaHarvested
-nrow(unique(dfProductionSumCountry[,c("Country","Year")])) == nrow(dfProductionSumCountry) # check duplicates
 
 #### calculate crop richness
 # regional level
@@ -142,14 +132,6 @@ names(dfRichness)[3] <- "richness"
 nrow(dfRichness)==nrow(dfProductionSum)
 nrow(unique(dfRichness[,c("Region","Year")])) == nrow(dfRichness) # check duplicates
 
-# country level
-dfRichnessCountry <- aggregate(Item~Country+Year,dfProductionCountry,function(x){length(unique(x))})
-head(dfRichnessCountry)
-names(dfRichnessCountry)[3] <- "richness"
-nrow(dfRichnessCountry)==nrow(dfProductionSumCountry)
-nrow(unique(dfRichnessCountry[,c("Country","Year")])) == nrow(dfRichnessCountry) # check duplicates
-
-
 #### calculate effective diversity (exp of shannon)
 # regional level
 dfShannon <- aggregate(AreaHarvested~Region+Year,dfProduction,function(x){exp(diversity(x,index="shannon"))})
@@ -158,47 +140,23 @@ names(dfShannon)[3] <- "diversity"
 nrow(dfShannon)==nrow(dfProductionSum)
 nrow(unique(dfShannon[,c("Region","Year")])) == nrow(dfShannon) # check duplicates
 
-# country level
-dfShannonCountry <- aggregate(AreaHarvested~Country+Year,dfProductionCountry,function(x){exp(diversity(x,index="shannon"))})
-head(dfShannonCountry)
-names(dfShannonCountry)[3] <- "diversity"
-nrow(dfShannonCountry)==nrow(dfProductionSumCountry)
-nrow(unique(dfShannonCountry[,c("Country","Year")])) == nrow(dfShannonCountry) # check duplicates
-
 #### Climate
 # regional level
-dfTemp <- read.csv("datasetsDerived/temperature_regional.csv")
+dfTemp <- read.csv("datasets/temperature_regional.csv")
 head(dfTemp)
-dfPrec <- read.csv("datasetsDerived/precipitation_regional.csv")
+dfPrec <- read.csv("datasets/precipitation_regional.csv")
 head(dfPrec)
-
-# country level
-dfTempCountry <- read.csv("datasetsDerived/temperature_national.csv")
-head(dfTempCountry)
-dfPrecCountry <- read.csv("datasetsDerived/precipitation_national.csv")
-head(dfPrecCountry)
-
 
 #### Soil quality
 # regional level
-dfSoil <- read.csv("datasetsDerived/soilQuality_regional.csv")
+dfSoil <- read.csv("datasets/soilQuality_regional.csv")
 dfSoil <- na.omit(dfSoil)
 head(dfSoil)
 
-# national level
-dfSoilCountry <- read.csv("datasetsDerived/soilQuality_national.csv")
-head(dfSoilCountry)
-dfSoilCountry$Country <- countrycode(dfSoilCountry$Country, 'iso3c', 'iso2c')
-
 #### Soil diversity
 # regional level
-dfSoilDiversity <- read.csv("datasetsDerived/soilDiversity_regional.csv")
+dfSoilDiversity <- read.csv("datasets/soilDiversity_regional.csv")
 head(dfSoilDiversity)
-
-# country level
-dfSoilDiversityCountry <- read.csv("datasetsDerived/soilDiversity_national.csv")
-head(dfSoilDiversityCountry)
-
 
 ######## CALCULATE VARIABLES FOR THE 4 TIME PERIOS
 
@@ -216,9 +174,12 @@ lsAll <- lapply(vecLevelFinal,function(reg){
     if(sumRegion>=8){  
       # subset data for the target region
       dfArableLandLevel <- dfArableLand[which(dfArableLand$Region==reg&dfArableLand$Year%in%yearStart:(yearStart+9)),]
-      dfProductionLevel <- dfProduction[which(dfProduction$Region==reg&dfProduction$Year%in%yearStart:(yearStart+9)),]
       dfProductionSumLevel <- dfProductionSum[which(dfProductionSum$Region==reg&dfProductionSum$Year%in%yearStart:(yearStart+9)),]
       dfProductionSumLevel$ProductionDet <- resid(lm(Production ~ Year^2,data=dfProductionSumLevel))
+      dfProductionSumLevel$ProductionCaloriesDet <- resid(lm(ProductionCalories ~ Year^2,data=dfProductionSumLevel))
+      dfProductionSumLevel$ProductionProteinDet <- resid(lm(ProductionProtein ~ Year^2,data=dfProductionSumLevel))
+      dfProductionSumLevel$ProductionFatDet <- resid(lm(ProductionFat ~ Year^2,data=dfProductionSumLevel))
+      
       dfRichnessLevel <- dfRichness[which(dfRichness$Region==reg&dfRichness$Year%in%yearStart:(yearStart+9)),]
       dfShannonLevel <- dfShannon[which(dfShannon$Region==reg&dfShannon$Year%in%yearStart:(yearStart+9)),]
       dfTempLevel <- dfTemp[which(dfTemp$Region==reg&dfTemp$Year%in%yearStart:(yearStart+9)),]
@@ -227,20 +188,17 @@ lsAll <- lapply(vecLevelFinal,function(reg){
       dfSoilDiversityLevel <- dfSoilDiversity[which(dfSoilDiversity$Region==reg),]
       
       ## calculate all metrics
-      dfSummary <- data.frame(Region=reg,Country=unique(dfProductionLevel$Country), timePeriod= yearStart)
+      dfSummary <- data.frame(Region=reg,Country=unique(dfProductionSumLevel$Country), timePeriod= yearStart)
       
-      # detrend crop-specific production for asynchrony calculation
-      for (j in unique(dfProductionLevel$Item))
-      {
-        dfProductionLevel[which(dfProductionLevel$Item==j),"ProductionDet"] = resid(lm(Production ~ Year^2,data=dfProductionLevel[which(dfProductionLevel$Item==j),]))
-      }      
-      dfSummary$cropAsynchrony <- 1 - round(synchrony(dfProductionLevel,time.var="Year",species.var="Item",abundance.var="ProductionDet"),10) 
-      dfSummary$cropAsynchronyOriginal <- 1 - round(synchrony(dfProductionLevel,time.var="Year",species.var="Item",abundance.var="Production"),10) # non-detrendet calcualtion for comparison
       dfSummary$productionStability <- mean(dfProductionSumLevel$Production,na.rm=T)/sd(dfProductionSumLevel$ProductionDet,na.rm=T)
-      dfSummary$productionStabilityOriginal <- mean(dfProductionSumLevel$Production,na.rm=T)/sd(dfProductionSumLevel$Production,na.rm=T) # non-detrendet calcualtion for comparison
-      dfSummary$cropStability <- mean(dfProductionSumLevel$Production)/sum(aggregate(ProductionDet~Item,dfProductionLevel,sd)[,2])
-      dfSummary$cropStabilityOriginal <- mean(dfProductionSumLevel$Production)/sum(aggregate(Production~Item,dfProductionLevel,sd)[,2]) # non-detrendet calcualtion for comparison
       dfSummary$production <- mean(dfProductionSumLevel$Production,na.rm=T)
+      dfSummary$productionCaloriesStability <- mean(dfProductionSumLevel$ProductionCalories,na.rm=T)/sd(dfProductionSumLevel$ProductionCaloriesDet,na.rm=T)
+      dfSummary$productionCaloriesStabilityOriginal <- mean(dfProductionSumLevel$ProductionCalories,na.rm=T)/sd(dfProductionSumLevel$ProductionCalories,na.rm=T) # non-detrendet calcualtion for comparison
+      dfSummary$productionCalories <- mean(dfProductionSumLevel$ProductionCalories,na.rm=T)
+      dfSummary$productionProteinStability <- mean(dfProductionSumLevel$ProductionProtein,na.rm=T)/sd(dfProductionSumLevel$ProductionProteinDet,na.rm=T)
+      dfSummary$productionProtein <- mean(dfProductionSumLevel$ProductionProtein,na.rm=T)
+      dfSummary$productionFatStability <- mean(dfProductionSumLevel$ProductionFat,na.rm=T)/sd(dfProductionSumLevel$ProductionFatDet,na.rm=T)
+      dfSummary$productionFat <- mean(dfProductionSumLevel$ProductionFat,na.rm=T)
       dfSummary$areaHarvested <- mean(dfProductionSumLevel$AreaHarvested,na.rm=T)
       dfSummary$arableLand <- mean(dfArableLandLevel$values,na.rm=T)
       dfSummary$richness <- mean(dfRichnessLevel$richness,na.rm=T)
@@ -264,7 +222,7 @@ length(unique(dfAll$Region)) ## 171 regions
 nrow(dfAll) ## 462 data points
 
 ## add data from national level
-dfCountry <- read.csv("datasetsDerived/dataInputs_national.csv")
+dfCountry <- read.csv("datasets/dataInputs_national.csv")
 head(dfCountry)
 dfCountry$Country <- countrycode(dfCountry$Country, 'country.name', 'iso2c')
 length(unique(dfCountry$Country))
@@ -281,13 +239,8 @@ length(unique(dfAll$Country)) ## 23 countries
 dfAll$Country <- factor(dfAll$Country)
 
 # check correlation of detrended and non-detrended variables
-cor(dfAll$productionStability,dfAll$productionStabilityOriginal,method="p")
-cor(dfAll$productionStability,dfAll$productionStabilityOriginal,method="s")
-cor(dfAll$cropStability,dfAll$cropStabilityOriginal,method="p")
-cor(dfAll$cropStability,dfAll$cropStabilityOriginal,method="s")
-cor(dfAll$cropAsynchrony,dfAll$cropAsynchronyOriginal,method="p")
-cor(dfAll$cropAsynchrony,dfAll$cropAsynchronyOriginal,method="s")
-# -> closely correlated
+cor(dfAll$productionCaloriesStabilityOriginal,dfAll$productionCaloriesStability,method="p")
+cor(dfAll$productionCaloriesStabilityOriginal,dfAll$productionCaloriesStability,method="s")
 
 # European arable land covered 
 mean(aggregate(areaHarvested~timePeriod,dfAll[which(dfAll$richness>1),],sum)[,2])/mean(aggregate(values~Year,dfArableLand,sum)[,2])*100#  41.93512%
@@ -296,101 +249,14 @@ mean(aggregate(areaHarvested~timePeriod,dfAll[which(dfAll$richness>1),],sum)[,2]
 names(dfAll)
 dfAll$coverage <- dfAll$areaHarvested/dfAll$arableLand
 dfAll <- dfAll[,c("Region","Country","timePeriod",
-                  "productionStability","cropStability","cropAsynchrony",
-                  "production","coverage",
+                  "productionStability","productionCaloriesStability","productionProteinStability","productionFatStability",
+                  "production","productionCalories","productionProtein","productionFat",
+                  "coverage",
                   "diversity","richness","soilQuality","soilDiversity","fertilizer","irrigation",
                   "instabilityTemp","instabilityPrec")]
 
-write.csv(dfAll, "datasetsDerived/dataFinal_regional.csv",row.names=F)
+write.csv(dfAll, "datasets/dataFinal_regional.csv",row.names=F)
 
-
-### national level
-# get regions across datasets
-vecCountryFinal <- Reduce(intersect,list(dfProductionCountry$Country,dfProductionSumCountry$Country,dfRichnessCountry$Country,dfShannonCountry$Country,dfTempCountry$Country,dfPrecCountry$Country,dfSoilDiversityCountry$Country,dfSoilCountry$Country))
-
-## summarize per time frame 
-lsAllCountry <- lapply(vecCountryFinal,function(lev){
-  # total production
-  show(as.character(lev))
-  lsAggregate <- lapply(c(1978,1988,1998,2008),function(yearStart){
-    
-    sumCountry <- sum(dfProductionSumCountry$Country==lev&dfProductionSumCountry$Year>=yearStart&dfProductionSumCountry$Year<=(yearStart+9))
-    if(sumCountry==10){  
-      # subset data for the target country
-      dfProductionLevel <- dfProductionCountry[which(dfProductionCountry$Country==lev&dfProductionCountry$Year%in%yearStart:(yearStart+9)),]
-      dfProductionSumLevel <- dfProductionSumCountry[which(dfProductionSumCountry$Country==lev&dfProductionSumCountry$Year%in%yearStart:(yearStart+9)),]
-      dfProductionSumLevel$ProductionDet <- resid(lm(Production ~ Year^2,data=dfProductionSumLevel))
-      dfRichnessLevel <- dfRichnessCountry[which(dfRichnessCountry$Country==lev&dfRichnessCountry$Year%in%yearStart:(yearStart+9)),]
-      dfShannonLevel <- dfShannonCountry[which(dfShannonCountry$Country==lev&dfShannonCountry$Year%in%yearStart:(yearStart+9)),]
-      dfTempLevel <- dfTempCountry[which(dfTempCountry$Country==lev&dfTempCountry$Year%in%yearStart:(yearStart+9)),]
-      dfPrecLevel <- dfPrecCountry[which(dfPrecCountry$Country==lev&dfPrecCountry$Year%in%yearStart:(yearStart+9)),]
-      dfSoilLevel <- dfSoilCountry[which(dfSoilCountry$Country==lev),]
-      dfSoilDiversityLevel <- dfSoilDiversityCountry[which(dfSoilDiversityCountry$Country==lev),]
-      
-      # calculate all metrics
-      dfSummary <- data.frame(Country=lev,timePeriod= yearStart)
-      
-      # detrend crop-specific production for asynchrony calculation
-      for (j in unique(dfProductionLevel$Item))
-      {
-        dfProductionLevel[which(dfProductionLevel$Item==j),"ProductionDet"] = resid(lm(Production ~ Year^2,data=dfProductionLevel[which(dfProductionLevel$Item==j),]))
-      }      
-      dfSummary$cropAsynchrony <- 1-round(synchrony(dfProductionLevel,time.var="Year",species.var="Item",abundance.var="ProductionDet"),10) 
-      dfSummary$cropAsynchronyOriginal <- 1 - round(synchrony(dfProductionLevel,time.var="Year",species.var="Item",abundance.var="Production"),10) # non-detrendet calcualtion for comparison
-      dfSummary$productionStability <- mean(dfProductionSumLevel$Production,na.rm=T)/sd(dfProductionSumLevel$ProductionDet,na.rm=T)
-      dfSummary$productionStabilityOriginal <- mean(dfProductionSumLevel$Production,na.rm=T)/sd(dfProductionSumLevel$Production,na.rm=T) # non-detrendet calcualtion for comparison
-      dfSummary$cropStability <- mean(dfProductionSumLevel$Production)/sum(aggregate(ProductionDet~Item,dfProductionLevel,sd)[,2])
-      dfSummary$cropStabilityOriginal <- mean(dfProductionSumLevel$Production)/sum(aggregate(Production~Item,dfProductionLevel,sd)[,2]) # non-detrendet calcualtion for comparison
-      dfSummary$production <- mean(dfProductionSumLevel$Production,na.rm=T)
-      dfSummary$areaHarvested <- mean(dfProductionSumLevel$AreaHarvested,na.rm=T)
-      dfSummary$richness <- mean(dfRichnessLevel$richness,na.rm=T)
-      dfSummary$diversity <- mean(dfShannonLevel$diversity,na.rm=T)
-      dfSummary$instabilityTemp <- -(mean(dfTempLevel$meanTemp,na.rm=T)/sd(dfTempLevel$meanTemp,na.rm=T))
-      dfSummary$instabilityPrec <- -(mean(dfPrecLevel$meanPrec,na.rm=T)/sd(dfPrecLevel$meanPrec,na.rm=T))
-      dfSummary$soilQuality <- mean(dfSoilLevel$soilQuality,na.rm=T)
-      dfSummary$soilDiversity <-  mean(dfSoilDiversityLevel$soilDiversity,na.rm=T)
-      dfSummary
-    }
-  })
-  do.call(rbind,lsAggregate)
-})
-dfAllCountry <- do.call(rbind,lsAllCountry)
-head(dfAllCountry)
-nrow(unique(dfAllCountry[,c("Country","timePeriod")])) == nrow(dfAllCountry) # check duplicates
-unique(dfAllCountry$timePeriod)
-head(dfAllCountry)
-sum(is.na(dfAllCountry))
-length(unique(dfAllCountry$Country)) ## 24 countries
-nrow(dfAllCountry) ## 59 data points
-
-
-## add data from national level
-length(unique(dfAllCountry$Country))
-dfAllCountry <- merge(dfAllCountry,dfCountry[,c("Country","timePeriod","fertilizer","irrigation")],by=c("Country","timePeriod"))
-
-# remove Netherlands
-dfAllCountry <- dfAllCountry[-which(dfAllCountry$Country=="NL"),]
-length(unique(dfAllCountry$Country)) ## 23 countries
-dfAllCountry$Country <- factor(dfAllCountry$Country)
-
-# check correlation of detrended and non detrenden variables
-cor(dfAllCountry$productionStability,dfAllCountry$productionStabilityOriginal,method="p")
-cor(dfAllCountry$productionStability,dfAllCountry$productionStabilityOriginal,method="s")
-cor(dfAllCountry$cropStability,dfAllCountry$cropStabilityOriginal,method="p")
-cor(dfAllCountry$cropStability,dfAllCountry$cropStabilityOriginal,method="s")
-cor(dfAllCountry$cropAsynchrony,dfAllCountry$cropAsynchronyOriginal,method="p")
-cor(dfAllCountry$cropAsynchrony,dfAllCountry$cropAsynchronyOriginal,method="s")
-# -> closely correlated
-
-## save dataframe
-names(dfAllCountry)
-dfAllCountry <- dfAllCountry[,c("Country","timePeriod",
-                  "productionStability","cropStability","cropAsynchrony",
-                  "production","areaHarvested",
-                  "diversity","richness","soilQuality","soilDiversity","fertilizer","irrigation",
-                  "instabilityTemp","instabilityPrec")]
-
-write.csv(dfAllCountry, "datasetsDerived/dataFinal_national.csv",row.names=F)
 
 
 rm(list=ls())

@@ -15,11 +15,6 @@ dfID$cellID <- 1:nrow(dfID)
 mapRegion <- readOGR("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/Corine2000/u2006_clc2000_v2020_20u1_fgdb/Raster/regions_europe_agriculturalAreasCLC.shp")
 # plot(mapRegion)
 
-# national
-mapCountry <- readOGR("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/Corine2000/u2006_clc2000_v2020_20u1_fgdb/Raster/countries_europe_agriculturalAreasCLC.shp")
-# plot(mapCountry)
-
-
 ## temporal mask from growing calendar
 
 wd <- "C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Data/ALL_CROPS_ArcINFO_0.5deg_filled"
@@ -132,7 +127,7 @@ names(dfExtractRegionTemp) <- c("Region",1961:2017)
 dfExtractRegionTempG <-  dfExtractRegionTemp %>% gather(Year, meanTemp,names(dfExtractRegionTemp)[2:58])
 head(dfExtractRegionTempG)
 
-write.csv(dfExtractRegionTempG,"datasetsDerived/temperature_regional.csv",row.names = F)
+write.csv(dfExtractRegionTempG,"datasets/temperature_regional.csv",row.names = F)
 
 # prec
 dfExtractRegionPrec <- raster::extract(stackPrec,mapRegion,fun=mean,na.rm=TRUE,weights=TRUE,normalizeWeights=TRUE,sp=TRUE)@data
@@ -146,33 +141,6 @@ names(dfExtractRegionPrec) <- c("Region",1961:2017)
 dfExtractRegionPrecG <-  dfExtractRegionPrec %>% gather(Year, meanPrec,names(dfExtractRegionPrec)[2:58])
 head(dfExtractRegionPrecG)
 
-write.csv(dfExtractRegionPrecG,"datasetsDerived/precipitation_regional.csv",row.names = F)
-
-## extract climate data in each country
-# temp
-dfExtractCountryTemp <- raster::extract(stackTemp,mapCountry,fun=mean,na.rm=TRUE,weights=TRUE,normalizeWeights=TRUE,sp=TRUE)@data
-head(dfExtractCountryTemp)
-names(dfExtractCountryTemp)
-
-names(dfExtractCountryTemp) <- c("Country",1961:2017)
-
-dfExtractCountryTempG <-  dfExtractCountryTemp %>% gather(Year, meanTemp,names(dfExtractCountryTemp)[2:58])
-head(dfExtractCountryTempG)
-
-write.csv(dfExtractCountryTempG,"datasetsDerived/temperature_national.csv",row.names = F)
-
-# prec
-dfExtractCountryPrec <- raster::extract(stackPrec,mapCountry,fun=mean,na.rm=TRUE,weights=TRUE,normalizeWeights=TRUE,sp=TRUE)@data
-head(dfExtractCountryPrec)
-names(dfExtractCountryPrec)
-
-names(dfExtractCountryPrec) <- c("Country",1961:2017)
-
-# change structure of dataset
-dfExtractCountryPrecG <-  dfExtractCountryPrec %>% gather(Year, meanPrec,names(dfExtractCountryPrec)[2:58])
-head(dfExtractCountryPrecG)
-
-write.csv(dfExtractCountryPrecG,"datasetsDerived/precipitation_national.csv",row.names = F)
-
+write.csv(dfExtractRegionPrecG,"datasets/precipitation_regional.csv",row.names = F)
 
 rm(list=ls())

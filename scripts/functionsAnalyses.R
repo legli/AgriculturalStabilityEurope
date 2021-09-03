@@ -31,54 +31,60 @@ funMaps <- function(dfInput,variable,map,level,b,colVec,tit,lab)
                          labels=round(labScale,2))+
     theme(legend.position = c(0.85, 0.5)) +
     theme_void() +
-    coord_sf(xlim = extent(mapsBivariate)[1:2],
-             ylim = extent(mapsBivariate)[3:4]) +
+    coord_sf(xlim = c(-25,30),
+             ylim = c(35,70)) +
     guides(fill = guide_colorbar(barheight = 5,barwidth = 0.2,title.position = "left"))+
     theme(legend.title = element_text(size=6,angle = 90),legend.text = element_text(size=6))+
     labs(title = lab)+
-    theme(title = element_text(hjust = 0, face= "bold",size=8))
+    theme(title = element_text(hjust = 0, face= "bold",size=6))
+    
   
   fig
 }
 
 ############### function to create barplot of main effects
 
-funEffect <- function(mod1,noPred,namPred,tit,color,yLength,b,rnd,yname,textPos,textNeg){
+funEffect <- function(mod,yTitle,label){
  
-  dfCombined <-  data.frame(summary(mod1)$tTable[2:noPred,c(1,2,5)])
-  names(dfCombined) <- c("Effect","SE","pVal")
-  dfCombined$nam  <- namPred
+  dfStability <- data.frame(coef(summary(mod))[2:7,c(1,2,4)])
+  names(dfStability) <- c("Effect","SE","pVal")
+  dfStability$nam <- c("Crop diversity","Soil productivity","Soil type diversity","Temperature instability","Precipitation instability","Time")
+  dfStability$nam <- factor(dfStability$nam, levels = unique(dfStability$nam))
+
+  dfStability$labHeight <- dfStability$Effect
+  dfStability[which(dfStability$Effect>0),"labHeight"] <- dfStability[which(dfStability$Effect>0),"Effect"] + dfStability[which(dfStability$Effect>0),"SE"] + 0.05
+  dfStability[which(dfStability$Effect<0),"labHeight"] <- dfStability[which(dfStability$Effect<0),"Effect"] - dfStability[which(dfStability$Effect<0),"SE"] - 0.05
+  dfStability$lab <- ""
+  dfStability[which(dfStability$pVal<0.05),"lab"] <- "*"
+  dfStability[which(dfStability$pVal<0.01),"lab"] <- "**"
+  dfStability[which(dfStability$pVal<0.001),"lab"] <- "***"
+  dfStability[which(dfStability$pVal>=0.05),"lab"] <- "NS"
+  dfStability$lab <- factor(dfStability$lab, levels = unique(dfStability$lab))
   
-  dfCombined$nam <- factor(dfCombined$nam, levels = unique(dfCombined$nam))
-  dfCombined$labHeight <- dfCombined$Effect + dfCombined$SE + textPos
-  dfCombined[which(dfCombined$Effect<0),"labHeight"] <- dfCombined[which(dfCombined$Effect<0),"Effect"]- dfCombined[which(dfCombined$Effect<0),"SE"] - textNeg
-  dfCombined$lab <- ""
-  dfCombined[which(dfCombined$pVal<0.05),"lab"] <- "*"
-  dfCombined[which(dfCombined$pVal<0.01),"lab"] <- "**"
-  dfCombined[which(dfCombined$pVal<0.001),"lab"] <- "***"
-  dfCombined[which(dfCombined$pVal>=0.05),"lab"] <- "NS"
-  dfCombined$lab <- factor(dfCombined$lab, levels = unique(dfCombined$lab))
-  dfText <- data.frame(xpos=1:length(namPred),ypos=dfCombined$labHeight,lab=dfCombined$lab)
+  dfText <- data.frame(xpos=1:6,ypos=dfStability$labHeight,lab=dfStability$lab)
   
-  
-  fig <- ggplot(data=dfCombined, aes(x=nam, y=Effect)) +
-    geom_bar(stat="identity", position=position_dodge(), fill=color)+
+  fig <- ggplot(data=dfStability, aes(x=nam, y=Effect)) +
+    geom_bar(stat="identity", position=position_dodge())+
     geom_errorbar(aes(ymin=Effect-SE, ymax=Effect+SE), width=.1,
                   position=position_dodge(.9)) +
     geom_text(data=dfText,aes(x=xpos,y=ypos,label=lab),size=2)+  
     theme_classic() +  
     xlab("") +
-    scale_y_continuous(breaks = round(seq(-yLength,yLength, by = b),rnd),limits=c(-yLength,yLength)) +
-    ylab(yname) +
+    scale_y_continuous(breaks = round(seq(-0.6,0.6, by = 0.2),1),limits=c(-0.6,0.6)) +
+    ylab(yTitle) +
     theme(axis.title.y=element_text(size=8)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1,size=8))+
     theme(axis.text.y = element_text(size=8))+
-    geom_hline(yintercept=0,size=0)+
-    theme(plot.margin = unit(c(0.2,0.3,-0.5,0.2), "cm"))+
-    theme(legend.position = "none")+
-    ggtitle(tit)+
-    theme(plot.title = element_text(size=8))+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1,size=6))
-
+    geom_hline(yintercept=0)+
+    theme(legend.position = c(0.9, 0.8))+
+    theme(legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8))+
+    theme(legend.key.size = unit(0.2,"cm")) +
+    theme(plot.margin = unit(c(0.2,0.3,-0.5,0.5), "cm")) 
+  
+    if(label==F){
+      fig <- fig + scale_x_discrete(labels=c("","","","","","")) 
+    }
   fig
 }
 
