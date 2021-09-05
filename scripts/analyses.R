@@ -153,7 +153,7 @@ h1 <- funMaps(dfRegionAgg,variable="soilDiversity",st_as_sf(mapRegion),"Region",
 i1 <- funMaps(dfRegionAgg,variable="instabilityTemp",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Temperature instability","i")
 j1 <- funMaps(dfRegionAgg,variable="instabilityPrec",st_as_sf(mapRegion),"Region",seq(0,50,length.out = 11),c("#FFFFE5","#78C679","#004529"),"Precipitation instability","j")
 
-jpeg("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Revision/Revision2/Results/Fig1.jpeg", width = 17.4,height = 8, units = 'cm',res = 600)
+jpeg("results/Fig1.jpeg", width = 17.4,height = 8, units = 'cm',res = 600)
   grid.arrange(a1,b1,c1,d1,e1,f1,g1,h1,i1,j1,ncol=5,nrow=2)
 dev.off()
 
@@ -216,7 +216,7 @@ a2 <- ggplot(data=dfCombined, aes(x=nam, y=Effect,fill=Nutrient)) +
   theme(plot.margin = unit(c(0.2,0.3,-0.5,0.5), "cm")) 
 
 # plot
-jpeg("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Revision/Revision2/Results/Fig2.jpeg", width = 12.9, height = 8, units = 'cm', res = 600)
+jpeg("results/Fig2.jpeg", width = 12.9, height = 8, units = 'cm', res = 600)
   a2
 dev.off()
 
@@ -240,7 +240,7 @@ f3 <- funInteraction(dfPredict=dfPredictRegion,dfCenter=dfCenterRegion,dfLog=dfT
                      modLabel="Precipitation instability",yVal1=0,yVal2=20,pVal=paste0("p = ",round(dfTab[15,4],2)))
 
 
-jpeg("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Revision/Revision2/Results/Fig3.jpeg", width = 17.4, height = 12, units = 'cm',res = 600)
+jpeg("results/Fig3.jpeg", width = 17.4, height = 12, units = 'cm',res = 600)
   ggarrange(a3,b3,c3,d3,e3,f3,
             labels = letters[1:6],font.label=list(size=8),
             ncol = 3, nrow = 2)
@@ -254,7 +254,7 @@ c4 <- funEffect(modStabilityCaloriesFR,"Standardized regression coefficient",T)
 d4 <- funEffect(modStabilityCaloriesIT,"",T)
 
 # plot
-jpeg("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Revision/Revision2/Results/Fig4.jpeg", width = 17.4, height = 12, units = 'cm', res = 600)
+jpeg("results/Fig4.jpeg", width = 17.4, height = 12, units = 'cm', res = 600)
   ggarrange(a4,b4,c4,d4,
             labels = letters[1:4],font.label=list(size=8),
             ncol = 2, nrow = 2,heights=c(1,1.3))
@@ -351,12 +351,12 @@ funTable <- function(bootMatrix,mod,name){
 tableS2 <- rbind(funTable(boot_est1,modStabilityCaloriesRegionLME,"Calories"),funTable(boot_est2,modStabilityProteinRegionLME,"Protein"),
                  funTable(boot_est3,modStabilityFatRegionLME,"Fat"))
 
-write.xlsx(tableS2,"C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Revision/Revision2/Results/TableS2.xlsx",row.names=F)
+write.xlsx(tableS2,"results/TableS2.xlsx",row.names=F)
 
 tableS3 <- rbind(funTable(boot_est_country1,modStabilityCaloriesDE,"DE"),funTable(boot_est_country2,modStabilityCaloriesES,"ES"),
                  funTable(boot_est_country3,modStabilityCaloriesFR,"FR"),funTable(boot_est_country4,modStabilityCaloriesIT,"IT"))
 
-write.xlsx(tableS3,"C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Revision/Revision2/Results/TableS3.xlsx",row.names=F)
+write.xlsx(tableS3,"results/TableS3.xlsx",row.names=F)
 
 rm(list=ls())
 
