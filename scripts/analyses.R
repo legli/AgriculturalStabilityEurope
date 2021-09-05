@@ -131,7 +131,7 @@ modStabilityCaloriesIT <- funMod("productionCaloriesStability","IT")
 ###################           FIGURES               ########################################
 ############################################################################################
 
-##### Fig 1: maps of resopnse and predictors
+##### Fig 1: maps of response variables and predictors
 
 # regional level
 mapRegion <- readOGR("spatial/regions_europe.shp")
@@ -158,7 +158,7 @@ jpeg("C:/Users/egli/Nextcloud/Cloud/PhD_Leipzig/Publications/StabilityEurope/Rev
 dev.off()
 
 
-## Fig 2: barplots of  stability model
+## Fig 2: barplots of stability models
 dfStabilityCalories <- data.frame(summary(modStabilityCaloriesRegionLME)$tTable[2:9,c(1,2,5)])
 names(dfStabilityCalories) <- c("Effect","SE","pVal")
 dfStabilityCalories$nam <- c("Crop diversity","sqrt(Nitrogen use)","Irrigation","Soil productivity","Soil type diversity","Temperature instability","Precipitation instability","Time")
